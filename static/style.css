@@ -1,0 +1,76 @@
+html, body {
+    margin: 0;
+    overflow: hidden;
+}
+
+.content {
+    height: 100vh;
+    float: left;
+}
+
+#map {
+    width: 60vw;
+}
+
+#panel {
+    width: 40vw;
+}
+
+.module {
+    height: 48vh;
+    width: 18vw;
+    margin: 1vh 1vw;
+    background-color: #ECEFF1;
+
+    float: left;
+}
+
+.module #order-form input[type="text"]{
+    width: 100%;
+
+    background: none;
+    border: none;
+    border-bottom: 1px solid white;
+}
+
+.module #car-list-container{
+    height: 100%;
+}
+
+.module #car-list-container div{
+    border: 1px solid white;
+    float: left;
+}
+
+.module #car-list-container .id{
+    width: 30%;
+}
+
+.module #car-list-container .status{
+    width: 50%;
+}
+
+.module #car-list-container .header{
+    border: none;
+    border-bottom: 3px solid white;
+    height: 25px;
+
+    line-height: 25px;
+    font-size: 20px;
+}
+
+.module #car-list-container ul{
+    width: 100%;
+    height: calc(100% - 25px);
+    margin: 0;
+    padding: 0;
+    clear: both;
+    overflow-y: scroll;
+    overflow-x: hidden;
+
+    list-style: none;
+}
+
+.module #car-list-container ul::-webkit-scrollbar { 
+    display: none; 
+}
