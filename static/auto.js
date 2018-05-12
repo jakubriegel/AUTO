@@ -71,7 +71,7 @@ class AUTO {
                 app.stats.update(data.stats);
                 app.list.update(app.cars);
                 // schedule next update
-                setTimeout((_app = app) => { _app.update(_app); }, 5000);
+                setTimeout((_app = app) => { _app.update(_app); }, 15000);
             }
         };
         request.open("GET", "/auto/cars", true);

@@ -16,9 +16,12 @@ namespace Module{
         private aInput: HTMLInputElement;
         private aSearchBox: google.maps.places.SearchBox;
         private aPosition: Data.Position;
+        private aStatus: HTMLDivElement;
+
         private bInput: HTMLInputElement;
         private bSearchBox: google.maps.places.SearchBox;
         private bPosition: Data.Position;
+        private bStatus: HTMLDivElement;
 
         private orderButton: HTMLInputElement;
 
@@ -33,10 +36,18 @@ namespace Module{
             this.aInput.placeholder = 'Enter origin';
             this.form.appendChild(this.aInput);
 
+            this.aStatus = <HTMLDivElement> document.createElement('div');
+            this.aStatus.className = 'status-icon';
+            this.form.appendChild(this.aStatus);
+            
             this.bInput = <HTMLInputElement> document.createElement('input');
             this.bInput.type = 'text';
             this.bInput.placeholder = 'Enter destination';
             this.form.appendChild(this.bInput);
+
+            this.bStatus = <HTMLDivElement> document.createElement('div');
+            this.bStatus.className = 'status-icon';
+            this.form.appendChild(this.bStatus);
             
             this.orderButton = <HTMLInputElement> document.createElement('input');
             this.orderButton.type = 'button';
@@ -56,30 +67,37 @@ namespace Module{
         initAutocomplete(): void {
             // set inputs as Google SearchBoxes and configure them
             this.aSearchBox = new google.maps.places.SearchBox(this.aInput);
-        
-            this.aSearchBox.addListener('places_changed', (form = this) => {
-                let places = form.aSearchBox.getPlaces();
+
+            let callback = (searchBox: google.maps.places.SearchBox, position: Data.Position, status: HTMLDivElement) => {
+                let places = searchBox.getPlaces();
                 if(places.length == 0) return;
                 if(places.length == 1) {
-                    form.aPosition = new Data.Position(places[0].geometry.location.lat(), places[0].geometry.location.lng())
-                    console.log(form.aPosition);
+                    position = new Data.Position(places[0].geometry.location.lat(), places[0].geometry.location.lng());
+                    
+                    let request = new XMLHttpRequest();
+                    request.onreadystatechange = function() {
+                        // tasks to be done after response is received
+                        if (this.readyState == 4 && this.status == 200){
+                            status.textContent = JSON.parse(request.responseText).response;
+                        }    
+                    }
+                    request.open("POST", "/auto/request/isAvailable", true); 
+                    request.send(JSON.stringify(position));
+
                     return;
                 }
                 window.alert("Input correct place");
-            })
+            }
+
+            this.aSearchBox.addListener('places_changed', (form = this) => { 
+                callback(form.aSearchBox, form.aPosition, form.aStatus); 
+            });
 
             this.bSearchBox = new google.maps.places.SearchBox(this.bInput);
         
-            this.bSearchBox.addListener('places_changed', (form = this) => {
-                let places = form.bSearchBox.getPlaces();
-                if(places.length == 0) return;
-                if(places.length == 1) {
-                    form.bPosition = new Data.Position(places[0].geometry.location.lat(), places[0].geometry.location.lng())
-                    console.log(form.bPosition);
-                    return;
-                }
-                window.alert("Input correct place");
-            })
+            this.bSearchBox.addListener('places_changed', (form = this) => { 
+                callback(form.bSearchBox, form.bPosition, form.bStatus); 
+            });
         }
 
         private sendOrder(form = this): void {

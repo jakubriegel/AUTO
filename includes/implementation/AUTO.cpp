@@ -28,8 +28,16 @@ void AUTO::readConfig(const std::string & configFile){
         this->area.emplace_back();
         auto & currentIsland = this->area.back();
         // add nodes of the island
-        for(const auto & node : island){ currentIsland.emplace_back(node[1], node[0]); }
+        for(const auto & node : island) currentIsland.emplace_back(node[1], node[0]);   
     }
+    // calculate lines going through area nodes
+    for(const auto & island : this->area) {
+        areaSegments.emplace_back();
+        auto & currentIsland = this->areaSegments.back();
+        for(unsigned int i = 1; i < island.size(); i++) currentIsland.emplace_back(island[i-1], island[i]);
+    }
+    // add reference point
+    this->referencePoint = Position(config["/referencePoint/lat"_json_pointer].get<double>(), config["/referencePoint/lng"_json_pointer].get<double>());
 
 }
 
@@ -75,14 +83,13 @@ void AUTO::server(){
         return response.dump();
     });
 
-    // check if any car is available at A
+    // check if A is in allowed area and if any car is available
     CROW_ROUTE(app,"/auto/request/isAvailable").methods("POST"_method)
     ([this](const crow::request & r){
-        auto A = crow::json::load(r.body);
-        if (!A) return crow::response(400);
+        const auto A = crow::json::load(r.body);
+        if(!A) return crow::response(400);
         crow::json::wvalue response;
-        if(this->isCarAvailable(Position(A["lat"].i(), A["lng"].i()))) response["response"] = true;
-        else response["response"] = false;
+        response["response"] = this->isCarAvailable(Position(A["lat"].d(), A["lng"].d()));
         return crow::response(response);
     });
 
@@ -139,12 +146,12 @@ void AUTO::updateCarStatus(Car * car, unsigned int old){
 
     // delete car from current vector
     switch (old) {
-        case Const::STATUS_JOB:
-        case Const::STATUS_PREJOB:
+        case Const::JOB:
+        case Const::PREJOB:
             this->busyCars.erase(std::find_if(this->busyCars.begin(), this->busyCars.end(), comp));
             this->busyCarsNo = this->busyCars.size();
             break;
-        case Const::STATUS_FREE:
+        case Const::FREE:
             this->freeCars.erase(std::find_if(this->freeCars.begin(), this->freeCars.end(), comp));
             this->freeCarsNo = this->freeCars.size();
             break;
@@ -152,11 +159,11 @@ void AUTO::updateCarStatus(Car * car, unsigned int old){
 
     // add car to correct vector
     switch (car->getStatus()) {
-        case Const::STATUS_JOB:
-        case Const::STATUS_PREJOB:
+        case Const::JOB:
+        case Const::PREJOB:
             this->setCarAsBusy(car);
             break;
-        case Const::STATUS_FREE:
+        case Const::FREE:
             this->setCarAsFree(car);
             break;
     }
@@ -172,18 +179,71 @@ void AUTO::setCarAsBusy(Car * car){
     this->busyCarsNo = this->busyCars.size();
 }
 
-bool AUTO::isCarAvailable(const Position & A) const {
-    for(Car * car : this->activeCars) if(car->getStatus() == Const::STATUS_FREE) return true;
-    return false;
+const bool AUTO::inArea(const Position & A) const {
+    const double refA = (this->referencePoint.getLng() - A.getLng()) / (this->referencePoint.getLat() - A.getLat());
+    const double refB = A.getLng() - refA * A.getLat();
+    // set boundaries of reference segment
+    const double refX1 = (this->referencePoint.getLat() < A.getLat()) ? this->referencePoint.getLat() : A.getLat();
+    const double refX2 = (refX1 == this->referencePoint.getLat()) ? A.getLat() : this->referencePoint.getLat();
+
+    // count intersections with area borders
+    unsigned int n = 0;
+    for(const auto & island : this->areaSegments) for(const auto & segment : island){
+        const double x1 = (segment.A.getLat() < segment.B.getLat()) ? segment.A.getLat() : segment.B.getLat();
+        const double x2 = (x1 == segment.A.getLat()) ? segment.B.getLat() : segment.A.getLat();
+
+        // check if common range exists in given ranges
+        if(refX2 >= x1 || x2 >= refX1) {
+            // check if segments are collinear
+            if(refA == segment.a && refB == segment.b){ 
+                n++;
+                continue;
+            }
+            // chceck if intersection exists
+            if(refA == segment.a) continue; // lines that aren't collinear and have the same slope don't have instersecions
+            // calculate intersection x coord and chceck if it is in common range 
+            const double x = (refB - segment.b) / (segment.a - refA); 
+            if(x >= refX1 && x <= refX2 && x >= x1 && x <= x2) n++;
+        }
+    }
+
+    if(n % 2 == 0) return false;
+    return true;
+}
+
+Car * AUTO::getCar(const Position & A) const {
+    if(this->freeCarsNo == 0) return nullptr;
+    auto closest = std::make_pair(this->freeCars[0], Position::getDistance(A, this->freeCars[0]->getPos()));
+    for(Car * car : this->freeCars) {
+        const double distance = Position::getDistance(A, car->getPos());
+        if(distance < closest.second) closest = std::make_pair(car, distance);
+    }
+
+    return closest.first;
+}
+
+STATUS AUTO::isCarAvailable(const Position & A) const {
+    // check is position is in allowed area
+    if(!this->inArea(A)) return Const::OUTSIDE_ALLOWED_AREA;
+    // check for available car
+    if(this->getCar(A) != nullptr) return Const::CAR_AVAILABLE;
+    // if no car is found
+    return Const::NO_CAR_AVAILABLE;
 }
 
 const unsigned int AUTO::requestRoute(const Position & A, const Position & B){
-    Route * route = url::getRoute(A, B);
-    // select car [temporary algorithm selects first avaible one]
-    for(Car * car : this->activeCars) if(car->getStatus() == Const::STATUS_FREE) {
-        car->addJob(route);
-        return car->getId();
+    if(this->isCarAvailable(A) == Const::CAR_AVAILABLE && this->inArea(B)){
+        // ask Google Maps for directions
+        Route * route = url::getRoute(A, B);
+        
+        // select car
+        auto * car = this->getCar(A);
+        if(car != nullptr) {
+            car->addJob(route);
+            return car->getId();
+        }
     }
+    
     // no car assigned - route cancelled
     return 0; 
 }

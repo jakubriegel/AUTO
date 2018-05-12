@@ -1,5 +1,7 @@
 #pragma once
 
+using STATUS = const unsigned int;
+
 // stl
 #include <iostream>
 #include <fstream>
@@ -10,6 +12,9 @@
 #include <sstream>
 #include <algorithm>
 #include <fstream>
+#include <iterator>
+#include <cmath>
+#include <utility>
 
 // external
 #include "crow_all.h"
@@ -19,15 +24,20 @@
 #include <curlpp/Options.hpp>
 
 // internal
+#include "util.hpp"
 #include "Car.hpp"
 #include "url.hpp"
 #include "AUTO.hpp"
 
 // const values
 namespace Const{
-    const unsigned int STATUS_FREE = 101;
-    const unsigned int STATUS_JOB = 102;
-    const unsigned int STATUS_PREJOB = 103;
+    STATUS FREE = 101;
+    STATUS JOB = 102;
+    STATUS PREJOB = 103;
+
+    STATUS CAR_AVAILABLE = 201;
+    STATUS NO_CAR_AVAILABLE = 202;
+    STATUS OUTSIDE_ALLOWED_AREA = 203;
 
     const Position BASE = Position(52.403766, 16.9511976); // PUT
 }
