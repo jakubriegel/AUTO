@@ -64,7 +64,7 @@ namespace Module{
             this.bPosition = new Data.Position(0,0);   
         }
 
-        initAutocomplete(): void {
+        private initAutocomplete(): void {
             // set inputs as Google SearchBoxes and configure them
             this.aSearchBox = new google.maps.places.SearchBox(this.aInput);
 
@@ -72,8 +72,10 @@ namespace Module{
                 let places = searchBox.getPlaces();
                 if(places.length == 0) return;
                 if(places.length == 1) {
-                    position = new Data.Position(places[0].geometry.location.lat(), places[0].geometry.location.lng());
+                    position.lat = places[0].geometry.location.lat();
+                    position.lng = places[0].geometry.location.lng()
                     
+                    // ask for car avaibality and print response
                     let request = new XMLHttpRequest();
                     request.onreadystatechange = function() {
                         // tasks to be done after response is received
@@ -106,7 +108,7 @@ namespace Module{
             order.B = form.bPosition;
             // convert to JSON
             let orderJSON = JSON.stringify(order);
-    
+
             let request = new XMLHttpRequest();
             request.open("POST", "/auto/request/route", false); 
             request.send(orderJSON);

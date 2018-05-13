@@ -47,7 +47,9 @@ var Module;
                 if (places.length == 0)
                     return;
                 if (places.length == 1) {
-                    position = new Data.Position(places[0].geometry.location.lat(), places[0].geometry.location.lng());
+                    position.lat = places[0].geometry.location.lat();
+                    position.lng = places[0].geometry.location.lng();
+                    // ask for car avaibality and print response
                     let request = new XMLHttpRequest();
                     request.onreadystatechange = function () {
                         // tasks to be done after response is received
