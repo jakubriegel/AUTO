@@ -12,26 +12,39 @@ var Data;
     }
     Data.PositionsAB = PositionsAB;
     class Car {
-        constructor(id, status, position, map) {
+        constructor(id, status, position, map, staticData) {
             this.id = id;
             this.status = status;
             this.position = position;
             this.map = map;
+            this.staticData = staticData;
             this.marker = new google.maps.Marker({
                 position: { lat: this.position.lat, lng: this.position.lng },
                 map: map,
-                label: this.id.toString(),
-                animation: google.maps.Animation.DROP /*,
-                icon: 'static/auto_free.png'*/
+                //label : this.id.toString(),
+                animation: google.maps.Animation.DROP,
+                icon: Car.staticData.autoFree
             });
-            this.updateInfoWindow();
+            this.updateMarker();
         }
-        updateInfoWindow() {
+        static setStatic(data) { Car.staticData = data; }
+        updateMarker() {
             var i = this.id, s = this.status;
             google.maps.event.clearListeners(this.marker, 'click');
             this.marker.addListener('click', function () {
                 (new google.maps.InfoWindow({ content: "car: " + i + "<br>status: " + s })).open(this.map, this);
             });
+            switch (this.status) {
+                case 101:
+                    this.marker.setIcon(Car.staticData.autoFree);
+                    break;
+                case 102:
+                    this.marker.setIcon(Car.staticData.autoTaken);
+                    break;
+                case 103:
+                    this.marker.setIcon(Car.staticData.autoBusy);
+                    break;
+            }
         }
         ;
         update(newPosition, newStatus) {
@@ -41,7 +54,7 @@ var Data;
             }
             if (this.status != newStatus) {
                 this.status = newStatus;
-                this.updateInfoWindow();
+                this.updateMarker();
             }
         }
         getId() { return this.id; }

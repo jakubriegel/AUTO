@@ -1,6 +1,7 @@
 // main class
 class AUTO{
     private static readonly poznan = new Data.Position(52.403113, 16.925905);
+    private static: Static;
 
     private _cars: Data.Car[];
     get cars(): Data.Car[] { return this._cars; }
@@ -12,12 +13,15 @@ class AUTO{
 
     private panel: HTMLDivElement;
     private requestForm: Module.RequestForm;
+    private _overview: Module.Overview;
+    get overview(): Module.Overview { return this._overview; }
     private _stats: Module.Stats;
     get stats(): Module.Stats { return this._stats; }
-    private _list: Module.CarList;
-    get list(): Module.CarList { return this._list; }
 
     constructor(){
+        this.static = new Static();
+        Data.Car.setStatic(this.static);
+
         this._cars = [];
         this.panel = <HTMLDivElement> document.getElementById('panel');
  
@@ -26,8 +30,8 @@ class AUTO{
 
         // initialize modules
         this.requestForm = new Module.RequestForm(this.panel);
+        this._overview = new Module.Overview(this.panel);
         this._stats = new Module.Stats(this.panel);
-        this._list = new Module.CarList(this.panel);
 
         // get data and schedule updates 
         this.update();
@@ -63,8 +67,8 @@ class AUTO{
             strokeColor: '#000000',
             strokeOpacity: 0.8,
             strokeWeight: 1,
-            fillColor: 'greenyellow',
-            fillOpacity: .1,
+            fillColor: 'white',
+            fillOpacity: 0.0,
             clickable: false
         });
         this.areaPoly.setMap(this.map);
@@ -87,14 +91,14 @@ class AUTO{
                             car.update(new Data.Position(d.pos.lat, d.pos.lng), d.status);
                             return;
                         }
-                        app.cars.push(new Data.Car(d.id, d.status, new Data.Position(d.pos.lat, d.pos.lng), app.map));
+                        app.cars.push(new Data.Car(d.id, d.status, new Data.Position(d.pos.lat, d.pos.lng), app.map, app.static));
                     })();
                     
                 }
 
                 // update modules
-                app.stats.update(data.stats);
-                app.list.update(app.cars);
+                app.overview.update(data.stats);
+                app.stats.update(app.cars);
                 
                 // schedule next update
                 setTimeout((_app = app)=>{ _app.update(_app); }, 15000);
@@ -102,6 +106,19 @@ class AUTO{
         }
         request.open("GET", "/auto/cars", true); 
         request.send(null);
+    }
+}
+
+// container for static data
+class Static {
+    public readonly autoFree: google.maps.Icon;
+    public readonly autoTaken: google.maps.Icon;
+    public readonly autoBusy: google.maps.Icon;
+
+    constructor() {
+        this.autoFree = {url: 'auto/static/auto_free.png'};
+        this.autoTaken = {url: 'auto/static/auto_taken.png'};
+        this.autoBusy = {url: 'auto/static/auto_busy.png'};
     }
 }
 

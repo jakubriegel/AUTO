@@ -1,20 +1,22 @@
 // main class
 class AUTO {
     constructor() {
+        this.static = new Static();
+        Data.Car.setStatic(this.static);
         this._cars = [];
         this.panel = document.getElementById('panel');
         // get config data and initialize the map
         this.config();
         // initialize modules
         this.requestForm = new Module.RequestForm(this.panel);
+        this._overview = new Module.Overview(this.panel);
         this._stats = new Module.Stats(this.panel);
-        this._list = new Module.CarList(this.panel);
         // get data and schedule updates 
         this.update();
     }
     get cars() { return this._cars; }
+    get overview() { return this._overview; }
     get stats() { return this._stats; }
-    get list() { return this._list; }
     config() {
         let app = this;
         // ask server for cars data
@@ -42,8 +44,8 @@ class AUTO {
             strokeColor: '#000000',
             strokeOpacity: 0.8,
             strokeWeight: 1,
-            fillColor: 'greenyellow',
-            fillOpacity: .1,
+            fillColor: 'white',
+            fillOpacity: 0.0,
             clickable: false
         });
         this.areaPoly.setMap(this.map);
@@ -64,12 +66,12 @@ class AUTO {
                                 car.update(new Data.Position(d.pos.lat, d.pos.lng), d.status);
                                 return;
                             }
-                        app.cars.push(new Data.Car(d.id, d.status, new Data.Position(d.pos.lat, d.pos.lng), app.map));
+                        app.cars.push(new Data.Car(d.id, d.status, new Data.Position(d.pos.lat, d.pos.lng), app.map, app.static));
                     })();
                 }
                 // update modules
-                app.stats.update(data.stats);
-                app.list.update(app.cars);
+                app.overview.update(data.stats);
+                app.stats.update(app.cars);
                 // schedule next update
                 setTimeout((_app = app) => { _app.update(_app); }, 15000);
             }
@@ -79,6 +81,14 @@ class AUTO {
     }
 }
 AUTO.poznan = new Data.Position(52.403113, 16.925905);
+// container for static data
+class Static {
+    constructor() {
+        this.autoFree = { url: 'auto/static/auto_free.png' };
+        this.autoTaken = { url: 'auto/static/auto_taken.png' };
+        this.autoBusy = { url: 'auto/static/auto_busy.png' };
+    }
+}
 window.onload = () => {
     let auto = new AUTO();
 };

@@ -111,9 +111,9 @@ void AUTO::server(){
     CROW_ROUTE(app, "/auto/static/<string>")([](std::string path){
         std::fstream file("static/" + path);
         std::string response = "", temp;
-        while (std::getline(file, temp)) response += temp;
-        
-        return response;
+        while (std::getline(file, temp)) response += temp + "\n";
+
+        return crow::response(response);
     });
 
     // start server

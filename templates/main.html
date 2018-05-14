@@ -2,7 +2,12 @@
 <html>
     <head>
         <title>AUTO</title>
+
+        <link rel="shortcut icon" href="auto/static/favicon.ico" type="image/x-icon">
+        <link rel="icon" href="auto/static/favicon.ico" type="image/x-icon">
+
         <link rel="stylesheet" type="text/css" href="auto/static/style.css">
+
         <script>var exports = {};</script>
         <script src="auto/static/data.js"></script>
         <script src="auto/static/modules.js"></script>
@@ -11,9 +16,12 @@
     <body>
         
         <div id="map" class="content"></div>
-        <div id="panel" class="content"></div>
+        <div id="panel" class="content">
+            <header>
+            </header>
+        </div>
 
-        <!-- Google Maps API init -->
+        <!-- Google Maps API -->
         <script async defer
             src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBfTruPldaz027vUHZKmRvRaAD-VCrdmIk&libraries=places&">
         </script>

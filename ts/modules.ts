@@ -1,17 +1,59 @@
 namespace Module{
     abstract class Module{
         protected container: HTMLDivElement;
+        private header: HTMLDivElement;
 
-        constructor(panel: HTMLDivElement){
-            // creating container for module
+        constructor(panel: HTMLDivElement, name: string, iconUrl: string){
+            // create container for module
             this.container = document.createElement('div');
             this.container.className = 'module';
             panel.appendChild(this.container);
+
+            // create header
+            this.header = <HTMLDivElement> document.createElement('div');
+            this.header.className = 'header';
+            let icon = document.createElement('div');
+            icon.className = 'icon';
+            icon.style.backgroundImage = 'url("auto/static/' + iconUrl + '")';
+            this.header.appendChild(icon);
+            let title = <HTMLHeadingElement> document.createElement('h3');
+            title.textContent = name;
+            this.header.appendChild(title);
+
+            this.container.appendChild(this.header);
+
         }
+    }
+
+    interface FormValidation{
+        a: boolean;
+        b: boolean;
+        val?: boolean;
     }
 
     export class RequestForm extends Module{
         private form: HTMLFormElement;
+        private validation: FormValidation;
+        // update activity of fields
+        private checkValidation(val?: FormValidation): void {
+            // check if new values of validation were passed
+            if(val){
+                if(val.val == undefined) this.validation = val;
+                else{
+                    if(val.a) this.validation.a = val.val;
+                    else this.validation.b = val.val;
+                }
+            }
+
+            if(this.validation.a){
+                this.bInput.disabled = false;
+                if(this.validation.b) this.orderButton.disabled = false;
+            }
+            else{
+                this.bInput.disabled = true;
+                this.orderButton.disabled = true;
+            }
+        }
 
         private aInput: HTMLInputElement;
         private aSearchBox: google.maps.places.SearchBox;
@@ -25,11 +67,21 @@ namespace Module{
 
         private orderButton: HTMLInputElement;
 
+        // clear inputs values and set their validation to false
+        private resetInputs(): void {
+            this.aInput.value = "";
+            this.aStatus.className = "status-icon";
+            this.bInput.value = "";
+            this.bStatus.className = "status-icon";
+            this.checkValidation({ a: false, b: false, val: undefined });
+        }
+
         constructor(panel: HTMLDivElement){
-            super(panel);
+            super(panel, 'Order ride', 'order-icon.png');
             // setting up the form
             this.form = <HTMLFormElement> document.createElement('form');
             this.form.id = 'order-form';
+            this.validation = { a: false, b: false };
 
             this.aInput = <HTMLInputElement> document.createElement('input');
             this.aInput.type = 'text';
@@ -61,26 +113,40 @@ namespace Module{
             this.initAutocomplete();
 
             this.aPosition = new Data.Position(0,0);
-            this.bPosition = new Data.Position(0,0);   
+            this.bPosition = new Data.Position(0,0);
+
+            this.checkValidation();
         }
 
         private initAutocomplete(): void {
             // set inputs as Google SearchBoxes and configure them
             this.aSearchBox = new google.maps.places.SearchBox(this.aInput);
 
-            let callback = (searchBox: google.maps.places.SearchBox, position: Data.Position, status: HTMLDivElement) => {
+            let callback = (form: RequestForm, searchBox: google.maps.places.SearchBox, position: Data.Position, status: HTMLDivElement, validation) => {
                 let places = searchBox.getPlaces();
                 if(places.length == 0) return;
                 if(places.length == 1) {
                     position.lat = places[0].geometry.location.lat();
                     position.lng = places[0].geometry.location.lng()
-                    
+
                     // ask for car avaibality and print response
                     let request = new XMLHttpRequest();
                     request.onreadystatechange = function() {
                         // tasks to be done after response is received
                         if (this.readyState == 4 && this.status == 200){
-                            status.textContent = JSON.parse(request.responseText).response;
+                            switch (JSON.parse(request.responseText).response) {
+                                case 201:
+                                    status.className = 'status-icon available';
+                                    validation.val = true;
+                                    break;
+                                case 202:
+                                case 203:
+                                    status.className = 'status-icon not-available';
+                                    validation.val = false;
+                                    break;
+                            }
+
+                            form.checkValidation(validation);
                         }    
                     }
                     request.open("POST", "/auto/request/isAvailable", true); 
@@ -92,13 +158,13 @@ namespace Module{
             }
 
             this.aSearchBox.addListener('places_changed', (form = this) => { 
-                callback(form.aSearchBox, form.aPosition, form.aStatus); 
+                callback(form, form.aSearchBox, form.aPosition, form.aStatus, { a: true, b: false }); 
             });
 
             this.bSearchBox = new google.maps.places.SearchBox(this.bInput);
         
             this.bSearchBox.addListener('places_changed', (form = this) => { 
-                callback(form.bSearchBox, form.bPosition, form.bStatus); 
+                callback(form, form.bSearchBox, form.bPosition, form.bStatus, { a: false, b: true }); 
             });
         }
 
@@ -108,15 +174,19 @@ namespace Module{
             order.B = form.bPosition;
             // convert to JSON
             let orderJSON = JSON.stringify(order);
-
             let request = new XMLHttpRequest();
-            request.open("POST", "/auto/request/route", false); 
+            request.onreadystatechange = function() {
+                // tasks to be done after response is received
+                if (this.readyState == 4 && this.status == 200) alert("Your car id is " + request.responseText);    
+            }
+            request.open("POST", "/auto/request/route", true); 
             request.send(orderJSON);
-            alert("Your car id is " + request.responseText);
+        
+            this.resetInputs();
         }
     }
 
-    export class Stats extends Module{
+    export class Overview extends Module{
         private activeCars: number;
         private activeCarsDiv: HTMLDivElement;
 
@@ -127,7 +197,7 @@ namespace Module{
         private busyCarsDiv: HTMLDivElement;
 
         constructor(panel: HTMLDivElement){
-            super(panel);
+            super(panel, 'Overview', 'overview-icon.png');
 
             this.activeCars = -1;
             this.activeCarsDiv = document.createElement('div');
@@ -195,12 +265,12 @@ namespace Module{
         }
     }
 
-    export class CarList extends Module {
+    export class Stats extends Module {
         private list: HTMLUListElement;
         private elements: Element[];
 
         constructor(panel: HTMLDivElement) {
-            super(panel);
+            super(panel, 'Stats', 'stats-icon.png');
 
             // create container
             let box = <HTMLDivElement> document.createElement('div');

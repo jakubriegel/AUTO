@@ -7,6 +7,8 @@
 html, body {
     margin: 0;
     overflow: hidden;
+
+    background-image: url("background.png");
 }
 
 .content {
@@ -22,18 +24,55 @@ html, body {
     width: 40vw;
 }
 
+#panel header {
+    width: 40vw;
+    height: 20vh;
+
+    background-image: url("banner.png");
+    background-position: center;
+    background-size: cover;
+    background-repeat: no-repeat;
+}
+
 .module {
-    height: 46vh;
+    height: 36vh;
     width: 16vw;
     margin: 1vh 1vw;
     padding: 1vh 1vw; 
-    background-color: #ECEFF1;
 
     float: left;
 }
 
+.module .header {
+    height: 6vh;
+    width: 16vw;
+    margin: 1.5vh 0;
+}
+
+.module .header .icon {
+    height: 100%;
+    width: 6vw;
+    float: left;
+
+    background-position: center;
+    background-size: contain;
+    background-repeat: no-repeat;
+}
+
+.module .header h3 {
+    height: 100%;
+    width: 10vw;
+    float: left;
+    margin: 0;
+
+    font-size: 3vh;
+    line-height: 6vh;
+    font-weight: 300;
+}
+
 .module #order-form input[type="text"]{
     width: 13.5vw;
+    height: 20px;
     float: left;
     margin: 0 .5vw .5vh 0;
 
@@ -44,15 +83,33 @@ html, body {
 
 .module #order-form .status-icon{
     width: 2vw;
+    height: 20px;
     float: left;
+
+    background-position: center;
+    background-size: contain;
+    background-repeat: no-repeat;
+}
+
+.module #order-form .available {
+    background-image: url("success.png");
+}
+
+.module #order-form .not-available {
+    background-image: url("error.png");
 }
 
 .module #order-form input[type="button"]{
     width: 16vw;
+
+    background: none;
+    border: solid 3px #00ACC1;
+    border-radius: 6px;
+    color: black;
 }
 
 .module #car-list-container{
-    height: 100%;
+    height: 40vh;
 }
 
 .module #car-list-container div{
@@ -69,17 +126,18 @@ html, body {
 }
 
 .module #car-list-container .header{
+    margin: 0;
     border: none;
     border-bottom: 3px solid white;
-    height: 25px;
+    height: 3vh;
 
-    line-height: 25px;
-    font-size: 16px;
+    line-height: 3vh;
+    font-size: 1.8vh;
 }
 
 .module #car-list-container ul{
     width: 100%;
-    height: calc(100% - 25px);
+    height: 24vh;
     margin: 0;
     padding: 0;
     clear: both;
