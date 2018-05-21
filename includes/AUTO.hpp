@@ -9,12 +9,14 @@ private:
     // area
     std::vector<std::vector<Position>> area;
     std::vector<std::vector<AreaSegment>> areaSegments;
+    std::mutex areaMutex;
     Position referencePoint;
 
     // cars
     std::vector<Car*> activeCars;
     std::vector<Car*> freeCars;
     std::vector<Car*> busyCars;
+    std::mutex carsMutex;
     unsigned int activeCarsNo;
     unsigned int freeCarsNo;
     unsigned int busyCarsNo;

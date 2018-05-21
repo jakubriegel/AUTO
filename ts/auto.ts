@@ -93,7 +93,6 @@ class AUTO{
                         }
                         app.cars.push(new Data.Car(d.id, d.status, new Data.Position(d.pos.lat, d.pos.lng), app.map, app.static));
                     })();
-                    
                 }
 
                 // update modules

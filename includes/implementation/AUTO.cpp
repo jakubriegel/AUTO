@@ -36,6 +36,20 @@ void AUTO::readConfig(const std::string & configFile){
         auto & currentIsland = this->areaSegments.back();
         for(unsigned int i = 1; i < island.size(); i++) currentIsland.emplace_back(island[i-1], island[i]);
     }
+/*
+    for(const auto & island : config["/area"_json_pointer]){
+        this->area.emplace_back();
+        auto & currentIsland = this->area.back();
+        areaSegments.emplace_back();
+        auto & currentSegIsland = this->areaSegments.back();
+        // add nodes of the island and calculate lines going through area nodes
+        for(const auto & node : island) {
+            currentIsland.emplace_back(node[1], node[0]);
+            const auto & last = std::prev(currentIsland.end(), 1);
+            if(last != currentIsland.begin()) currentSegIsland.emplace_back(*std::prev(last, 1), *last);
+        }  
+    }*/
+
     // add reference point
     this->referencePoint = Position(config["/referencePoint/lat"_json_pointer].get<double>(), config["/referencePoint/lng"_json_pointer].get<double>());
 
@@ -54,6 +68,7 @@ void AUTO::server(){
     // get necessary cofig data
     CROW_ROUTE(app, "/auto/config")([this](){
         // create response JSON
+        LOCK mutex(this->areaMutex);
         nlohmann::json response(this->area);
 
         return response.dump();
@@ -67,6 +82,7 @@ void AUTO::server(){
         // create temporary JSON for cars
         nlohmann::json temp;
         // get each car data and append them to the response
+        LOCK mutex(this->carsMutex);
         for(Car * car : this->activeCars){
             temp["id"] = car->getId();
             temp["status"] = car->getStatus();
@@ -89,6 +105,7 @@ void AUTO::server(){
         const auto A = crow::json::load(r.body);
         if(!A) return crow::response(400);
         crow::json::wvalue response;
+        LOCK mutex1(this->carsMutex), mutex2(this->areaMutex);
         response["response"] = this->isCarAvailable(Position(A["lat"].d(), A["lng"].d()));
         return crow::response(response);
     });
@@ -102,6 +119,9 @@ void AUTO::server(){
 
         // resolving A and B
         auto cords = nlohmann::json::parse(r.body);
+
+        // requat route
+        LOCK mutex1(this->carsMutex), mutex2(this->areaMutex);
         const unsigned int carId = this->requestRoute(Position(cords["/A/lat"_json_pointer], cords["/A/lng"_json_pointer]), Position(cords["/B/lat"_json_pointer], cords["/B/lng"_json_pointer]));
         
         return crow::response(std::to_string(carId));
@@ -121,11 +141,15 @@ void AUTO::server(){
 }
 
 void AUTO::simulator(){
+    this->carsMutex.lock();
     for(Car * car : this->activeCars) car->printPosition();
     std::time_t currentTime;
+    this->carsMutex.unlock();
     while(true){
         currentTime = std::time(0);
+        this->carsMutex.lock();
         for(Car * car : this->activeCars) car->update(currentTime);
+        this->carsMutex.unlock();
         std::this_thread::sleep_for(std::chrono::seconds(10));
     };
 }
@@ -134,7 +158,6 @@ Car* AUTO::addCar(){
     Car * car = new Car(this);
     this->activeCars.push_back(car);
     this->activeCarsNo = this->activeCars.size();
-    //this->setCarAsFree(car);
 
     return car;
 }

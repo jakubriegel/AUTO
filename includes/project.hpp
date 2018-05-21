@@ -1,7 +1,5 @@
 #pragma once
 
-using STATUS = const unsigned int;
-
 // stl
 #include <iostream>
 #include <fstream>
@@ -15,6 +13,7 @@ using STATUS = const unsigned int;
 #include <iterator>
 #include <cmath>
 #include <utility>
+#include <mutex>
 
 // external
 #include "crow_all.h"
@@ -22,6 +21,10 @@ using STATUS = const unsigned int;
 #include <curlpp/cURLpp.hpp>
 #include <curlpp/Easy.hpp>
 #include <curlpp/Options.hpp>
+
+// create aliases [for convinience]
+using STATUS = const unsigned int;
+using LOCK = std::lock_guard<std::mutex>;
 
 // internal
 #include "util.hpp"
