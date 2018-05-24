@@ -1,8 +1,10 @@
 {
     "compilerOptions": {
-        "outDir": "./static",
-        "allowJs": true,
-        "target": "es6"
+        /*"noImplicitAny": true,*/
+        "removeComments": true,
+        "outFile": "./static/script.js",
+        "target": "es6",
+        "allowJs": true
     },
     "include": [
         "./ts/**/*"

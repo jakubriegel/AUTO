@@ -1,12 +1,158 @@
+class AUTO {
+    get cars() { return this._cars; }
+    get overview() { return this._overview; }
+    get stats() { return this._stats; }
+    constructor() {
+        this.static = new Static();
+        Data.Car.setStatic(this.static);
+        this._cars = [];
+        this.panel = document.getElementById('panel');
+        this.config();
+        this.requestForm = new Module.RequestForm(this.panel);
+        this._overview = new Module.Overview(this.panel);
+        this._stats = new Module.Stats(this.panel);
+        this.update();
+    }
+    config() {
+        let app = this;
+        let request = new XMLHttpRequest();
+        request.onreadystatechange = function () {
+            if (this.readyState == 4 && this.status == 200) {
+                let data = JSON.parse(request.responseText);
+                app.area = data;
+                app.initMap();
+            }
+        };
+        request.open("GET", "/auto/config", true);
+        request.send(null);
+    }
+    initMap() {
+        let poz = { lat: this.static.poznan.lat.valueOf(), lng: this.static.poznan.lng.valueOf() };
+        this.map = new google.maps.Map(document.getElementById('map'), {
+            zoom: 12,
+            center: poz
+        });
+        this.areaPoly = new google.maps.Polygon({
+            paths: this.area,
+            strokeColor: '#000000',
+            strokeOpacity: 0.8,
+            strokeWeight: 1,
+            fillColor: 'white',
+            fillOpacity: 0.0,
+            clickable: false
+        });
+        this.areaPoly.setMap(this.map);
+        this.markers = [];
+    }
+    update(app = this) {
+        let request = new XMLHttpRequest();
+        request.onreadystatechange = function () {
+            if (this.readyState == 4 && this.status == 200) {
+                let data = JSON.parse(request.responseText);
+                for (let d of data.cars) {
+                    (() => {
+                        for (let car of app.cars)
+                            if (d.id == car.getId()) {
+                                car.update(new Data.Position(d.pos.lat, d.pos.lng), d.status);
+                                return;
+                            }
+                        app.cars.push(new Data.Car(d.id, d.status, new Data.Position(d.pos.lat, d.pos.lng), app.map, app.static));
+                    })();
+                }
+                app.overview.update(data.stats);
+                app.stats.update(app.cars);
+                setTimeout((_app = app) => { _app.update(_app); }, 15000);
+            }
+        };
+        request.open("GET", "/auto/cars", true);
+        request.send(null);
+    }
+}
+class Static {
+    constructor() {
+        this.poznan = new Data.Position(52.403113, 16.925905);
+        this.autoFree = { url: 'auto/static/auto_free.png' };
+        this.autoTaken = { url: 'auto/static/auto_taken.png' };
+        this.autoBusy = { url: 'auto/static/auto_busy.png' };
+    }
+}
+window.onload = () => {
+    let auto = new AUTO();
+};
+var Data;
+(function (Data) {
+    class Position {
+        constructor(lat, lng) {
+            this.lat = lat;
+            this.lng = lng;
+        }
+        ;
+    }
+    Data.Position = Position;
+    class PositionsAB {
+    }
+    Data.PositionsAB = PositionsAB;
+    class Car {
+        constructor(id, status, position, map, staticData) {
+            this.id = id;
+            this.status = status;
+            this.position = position;
+            this.map = map;
+            this.staticData = staticData;
+            this.marker = new google.maps.Marker({
+                position: { lat: this.position.lat, lng: this.position.lng },
+                map: map,
+                animation: google.maps.Animation.DROP,
+                icon: Car.staticData.autoFree
+            });
+            this.updateMarker();
+        }
+        static setStatic(data) { Car.staticData = data; }
+        updateMarker() {
+            var i = this.id, s = this.status;
+            google.maps.event.clearListeners(this.marker, 'click');
+            this.marker.addListener('click', function () {
+                (new google.maps.InfoWindow({ content: "car: " + i + "<br>status: " + s })).open(this.map, this);
+            });
+            switch (this.status) {
+                case 101:
+                    this.marker.setIcon(Car.staticData.autoFree);
+                    break;
+                case 102:
+                    this.marker.setIcon(Car.staticData.autoTaken);
+                    break;
+                case 103:
+                    this.marker.setIcon(Car.staticData.autoBusy);
+                    break;
+            }
+        }
+        ;
+        update(newPosition, newStatus) {
+            if (this.position != newPosition) {
+                this.position = newPosition;
+                this.marker.setPosition({ lat: this.position.lat, lng: this.position.lng });
+            }
+            if (this.status != newStatus) {
+                this.status = newStatus;
+                this.updateMarker();
+            }
+        }
+        getId() { return this.id; }
+        ;
+        getStatus() { return this.status; }
+        ;
+        getPosition() { return this.position; }
+        ;
+    }
+    Data.Car = Car;
+})(Data || (Data = {}));
 var Module;
 (function (Module_1) {
     class Module {
         constructor(panel, name, iconUrl) {
-            // create container for module
             this.container = document.createElement('div');
             this.container.className = 'module';
             panel.appendChild(this.container);
-            // create header
             this.header = document.createElement('div');
             this.header.className = 'header';
             let icon = document.createElement('div');
@@ -22,7 +168,6 @@ var Module;
     class RequestForm extends Module {
         constructor(panel) {
             super(panel, 'Order ride', 'order-icon.png');
-            // setting up the form
             this.form = document.createElement('form');
             this.form.id = 'order-form';
             this.validation = { a: false, b: false };
@@ -45,16 +190,13 @@ var Module;
             this.orderButton.value = 'Request';
             this.orderButton.onclick = () => { this.sendOrder(this); };
             this.form.appendChild(this.orderButton);
-            // add form to panel
             this.container.appendChild(this.form);
             this.initAutocomplete();
             this.aPosition = new Data.Position(0, 0);
             this.bPosition = new Data.Position(0, 0);
             this.checkValidation();
         }
-        // update activity of fields
         checkValidation(val) {
-            // check if new values of validation were passed
             if (val) {
                 if (val.val == undefined)
                     this.validation = val;
@@ -75,7 +217,6 @@ var Module;
                 this.orderButton.disabled = true;
             }
         }
-        // clear inputs values and set their validation to false
         resetInputs() {
             this.aInput.value = "";
             this.aStatus.className = "status-icon";
@@ -84,7 +225,6 @@ var Module;
             this.checkValidation({ a: false, b: false, val: undefined });
         }
         initAutocomplete() {
-            // set inputs as Google SearchBoxes and configure them
             this.aSearchBox = new google.maps.places.SearchBox(this.aInput);
             let callback = (form, searchBox, position, status, validation) => {
                 let places = searchBox.getPlaces();
@@ -93,10 +233,8 @@ var Module;
                 if (places.length == 1) {
                     position.lat = places[0].geometry.location.lat();
                     position.lng = places[0].geometry.location.lng();
-                    // ask for car avaibality and print response
                     let request = new XMLHttpRequest();
                     request.onreadystatechange = function () {
-                        // tasks to be done after response is received
                         if (this.readyState == 4 && this.status == 200) {
                             switch (JSON.parse(request.responseText).response) {
                                 case 201:
@@ -130,11 +268,9 @@ var Module;
             let order = new Data.PositionsAB();
             order.A = form.aPosition;
             order.B = form.bPosition;
-            // convert to JSON
             let orderJSON = JSON.stringify(order);
             let request = new XMLHttpRequest();
             request.onreadystatechange = function () {
-                // tasks to be done after response is received
                 if (this.readyState == 4 && this.status == 200)
                     alert("Your car id is " + request.responseText);
             };
@@ -165,7 +301,6 @@ var Module;
             text = document.createElement('p');
             text.textContent = 'busy cars';
             this.container.appendChild(text);
-            // this.update();
         }
         update(stats) {
             this.activeCars = stats['active'];
@@ -177,7 +312,6 @@ var Module;
         }
     }
     Module_1.Overview = Overview;
-    // element of CarList
     class Element {
         get li() { return this._li; }
         getId() { return this.car.getId(); }
@@ -200,10 +334,8 @@ var Module;
     class Stats extends Module {
         constructor(panel) {
             super(panel, 'Stats', 'stats-icon.png');
-            // create container
             let box = document.createElement('div');
             box.id = 'car-list-container';
-            // create header
             let header = document.createElement('h3');
             let temp = document.createElement('div');
             temp.className = 'id header';
@@ -213,11 +345,9 @@ var Module;
             temp.className = 'status header';
             temp.textContent = 'status';
             box.appendChild(temp);
-            // create list
             this.list = document.createElement('ul');
             box.appendChild(this.list);
             this.container.appendChild(box);
-            // initialize elements
             this.elements = [];
         }
         update(cars) {

@@ -14,6 +14,7 @@
 #include <cmath>
 #include <utility>
 #include <mutex>
+#include <random>
 
 // external
 #include "crow_all.h"
@@ -23,7 +24,7 @@
 #include <curlpp/Options.hpp>
 
 // create aliases [for convinience]
-using STATUS = const unsigned int;
+using STATUS = unsigned int;
 using LOCK = std::lock_guard<std::mutex>;
 
 // internal
@@ -34,13 +35,30 @@ using LOCK = std::lock_guard<std::mutex>;
 
 // const values
 namespace Const{
-    STATUS FREE = 101;
-    STATUS JOB = 102;
-    STATUS PREJOB = 103;
+    // universal positive status
+    const STATUS OK = 1001;
+    // universal end status
+    const STATUS END = 1002;
 
-    STATUS CAR_AVAILABLE = 201;
-    STATUS NO_CAR_AVAILABLE = 202;
-    STATUS OUTSIDE_ALLOWED_AREA = 203;
+    // statuses
+    const STATUS FREE = 101;
+    const STATUS JOB = 102;
+    const STATUS PREJOB = 103;
+    const STATUS IN_BASE = 104;
+    const STATUS TO_BASE = 105;
 
+    const STATUS CAR_AVAILABLE = 201;
+    const STATUS NO_CAR_AVAILABLE = 202;
+    const STATUS OUTSIDE_ALLOWED_AREA = 203;
+
+    // warnings
+    const STATUS LOW_BATTERY = 501;
+    const STATUS CRITICAL_BATTERY = 502;
+    const STATUS CHARGING = 503;
+
+    // localization of main base
     const Position BASE = Position(52.403766, 16.9511976); // PUT
+
+    // time consts | in seconds
+    const unsigned int MINUTE = 60;
 }

@@ -7,10 +7,11 @@ AUTO::AUTO(const std::string & configFile) : activeCars(0), freeCars(0), busyCar
     this->busyCarsNo = 0;
     this->readConfig(configFile);
 
-    // init server and simulator
-    std::thread web(&AUTO::server, this), sim(&AUTO::simulator, this);
+    // init modules of system
+    std::thread web(&AUTO::server, this), sim(&AUTO::simulator, this), ord(&AUTO::orders, this);
     web.join();
     sim.join();
+    ord.join();
 }
 
 void AUTO::readConfig(const std::string & configFile){
@@ -18,6 +19,9 @@ void AUTO::readConfig(const std::string & configFile){
     std::stringstream buffer;
     buffer << configData.rdbuf();
     auto config = nlohmann::json::parse(buffer);
+
+    // set cars range and count battery stats
+    Car::calcBatteryUsage(config["/cars/range"_json_pointer].get<unsigned int>(), config["/cars/minuteDistance"_json_pointer].get<unsigned int>());
 
     // set cars number and add them
     for(unsigned int i = config["/cars/number"_json_pointer].get<unsigned int>(); i > 0; i--) this->addCar();
@@ -28,27 +32,13 @@ void AUTO::readConfig(const std::string & configFile){
         this->area.emplace_back();
         auto & currentIsland = this->area.back();
         // add nodes of the island
-        for(const auto & node : island) currentIsland.emplace_back(node[1], node[0]);   
+        for(const auto & node : island) currentIsland.addNode(node[1], node[0]); 
     }
-    // calculate lines going through area nodes
-    for(const auto & island : this->area) {
-        areaSegments.emplace_back();
-        auto & currentIsland = this->areaSegments.back();
-        for(unsigned int i = 1; i < island.size(); i++) currentIsland.emplace_back(island[i-1], island[i]);
+    // calculate nodes segments
+    for(auto & island : this->area) {
+        auto & nodes = island.getNodes();
+        for(unsigned int i = 1; i < nodes.size(); i++) island.addSegment(nodes[i-1], nodes[i]);
     }
-/*
-    for(const auto & island : config["/area"_json_pointer]){
-        this->area.emplace_back();
-        auto & currentIsland = this->area.back();
-        areaSegments.emplace_back();
-        auto & currentSegIsland = this->areaSegments.back();
-        // add nodes of the island and calculate lines going through area nodes
-        for(const auto & node : island) {
-            currentIsland.emplace_back(node[1], node[0]);
-            const auto & last = std::prev(currentIsland.end(), 1);
-            if(last != currentIsland.begin()) currentSegIsland.emplace_back(*std::prev(last, 1), *last);
-        }  
-    }*/
 
     // add reference point
     this->referencePoint = Position(config["/referencePoint/lat"_json_pointer].get<double>(), config["/referencePoint/lng"_json_pointer].get<double>());
@@ -123,7 +113,7 @@ void AUTO::server(){
         // requat route
         LOCK mutex1(this->carsMutex), mutex2(this->areaMutex);
         const unsigned int carId = this->requestRoute(Position(cords["/A/lat"_json_pointer], cords["/A/lng"_json_pointer]), Position(cords["/B/lat"_json_pointer], cords["/B/lng"_json_pointer]));
-        
+
         return crow::response(std::to_string(carId));
     });
 
@@ -141,17 +131,65 @@ void AUTO::server(){
 }
 
 void AUTO::simulator(){
-    this->carsMutex.lock();
-    for(Car * car : this->activeCars) car->printPosition();
     std::time_t currentTime;
-    this->carsMutex.unlock();
+
+    // start simulation loop
     while(true){
+        // get current time | in seconds since Epoch
         currentTime = std::time(0);
-        this->carsMutex.lock();
-        for(Car * car : this->activeCars) car->update(currentTime);
-        this->carsMutex.unlock();
+        {
+            LOCK mutex(this->carsMutex);
+            // update every car
+            for(Car * car : this->activeCars) car->update(currentTime);
+        }
+
+        // wait for next update
         std::this_thread::sleep_for(std::chrono::seconds(10));
     };
+}
+
+void AUTO::orders(){
+    // wait for rest of the app to initialize
+    std::this_thread::sleep_for(std::chrono::seconds(5));
+
+    // start simulation loop
+    while(true){
+        // catch possible errors with getting route
+        try { 
+            LOCK mutex1(this->carsMutex), mutex2(this->areaMutex);
+
+            // draw origin island
+            Area * island = &(this->area[Util::randUnInt(0, this->area.size()-1)]);
+            
+            // draw origin position
+            Position posA;
+            do {
+                double lat = Util::randDouble(island->getMinLat(), island->getMaxLat());
+                double lng = Util::randDouble(island->getMinLng(), island->getMaxLng());
+                posA = Position(lat, lng);
+            } while(this->isCarAvailable(posA) != Const::CAR_AVAILABLE);
+
+            // draw destination island
+            island = &(this->area[Util::randUnInt(0, this->area.size()-1)]);
+            // draw destination position
+            Position posB;
+            do {
+                double lat = Util::randDouble(island->getMinLat(), island->getMaxLat());
+                double lng = Util::randDouble(island->getMinLng(), island->getMaxLng());
+                posB = Position(lat, lng);
+            } while(this->isCarAvailable(posB) != Const::CAR_AVAILABLE);
+
+            // request route
+            this->requestRoute(posA, posB);
+        }
+        catch (...) {
+            std::cout << "Orders simulation error\n";
+        }
+        
+        // draw time of next order
+        std::this_thread::sleep_for(std::chrono::seconds(Util::randUnInt(45, 100)));
+    };
+    
 }
 
 Car* AUTO::addCar(){
@@ -162,7 +200,7 @@ Car* AUTO::addCar(){
     return car;
 }
 
-void AUTO::updateCarStatus(Car * car, unsigned int old){
+void AUTO::updateCarStatus(Car * car, const STATUS & old){
     // create compare for std::find
     const unsigned int & id = car->getId();
     auto comp = [&id](const Car * a){ return a->getId() == id; };
@@ -211,7 +249,7 @@ const bool AUTO::inArea(const Position & A) const {
 
     // count intersections with area borders
     unsigned int n = 0;
-    for(const auto & island : this->areaSegments) for(const auto & segment : island){
+    for(const auto & island : this->area) for(const auto & segment : island.getSegments()) { 
         const double x1 = (segment.A.getLat() < segment.B.getLat()) ? segment.A.getLat() : segment.B.getLat();
         const double x2 = (x1 == segment.A.getLat()) ? segment.B.getLat() : segment.A.getLat();
 
@@ -245,7 +283,7 @@ Car * AUTO::getCar(const Position & A) const {
     return closest.first;
 }
 
-STATUS AUTO::isCarAvailable(const Position & A) const {
+const STATUS AUTO::isCarAvailable(const Position & A) const {
     // check is position is in allowed area
     if(!this->inArea(A)) return Const::OUTSIDE_ALLOWED_AREA;
     // check for available car
@@ -270,5 +308,3 @@ const unsigned int AUTO::requestRoute(const Position & A, const Position & B){
     // no car assigned - route cancelled
     return 0; 
 }
-    
-

@@ -1,6 +1,8 @@
 {
     "cars": {
-        "number": 20
+        "number": 30,
+        "range": 350,
+        "minuteDistance": 10
     },
 
     "area": [

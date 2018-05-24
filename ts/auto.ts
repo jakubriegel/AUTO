@@ -1,6 +1,5 @@
 // main class
 class AUTO{
-    private static readonly poznan = new Data.Position(52.403113, 16.925905);
     private static: Static;
 
     private _cars: Data.Car[];
@@ -56,7 +55,7 @@ class AUTO{
     }
 
     private initMap(): void {
-        let poz = {lat: AUTO.poznan.lat.valueOf(), lng: AUTO.poznan.lng.valueOf()};
+        let poz = {lat: this.static.poznan.lat.valueOf(), lng: this.static.poznan.lng.valueOf()};
         this.map = new google.maps.Map(document.getElementById('map'), {
           zoom: 12,
           center: poz
@@ -110,11 +109,15 @@ class AUTO{
 
 // container for static data
 class Static {
+    public readonly poznan: Data.Position;
+
     public readonly autoFree: google.maps.Icon;
     public readonly autoTaken: google.maps.Icon;
     public readonly autoBusy: google.maps.Icon;
 
     constructor() {
+        this.poznan = new Data.Position(52.403113, 16.925905);
+
         this.autoFree = {url: 'auto/static/auto_free.png'};
         this.autoTaken = {url: 'auto/static/auto_taken.png'};
         this.autoBusy = {url: 'auto/static/auto_busy.png'};
