@@ -4,7 +4,7 @@
 AUTO is a project of the system of full autonumous electric cabs running in [Poznań](https://goo.gl/maps/JcykRLkoVo22) featuring integrated simulator of vehicles and sample front-end. It also has integrated generator of random orders for rides.
 
 ## Implementation
-System is implemented 100% in C++ with additional frameworks: [cURL](https://github.com/curl/curl), [cURLpp](https://github.com/jpbarrette/curlpp) and [Crow](https://github.com/ipkn/crow). Front-end is written is [TypeScript](https://github.com/Microsoft/TypeScript). Map service is provided bu Google Maps API. 
+System is implemented 100% in C++ with additional frameworks: [cURL](https://github.com/curl/curl), [cURLpp](https://github.com/jpbarrette/curlpp) and [Crow](https://github.com/ipkn/crow). Front-end is written is [TypeScript](https://github.com/Microsoft/TypeScript). Map service is provided by Google Maps API. 
 
 Code is explained by in-line comments. As AUTO is still in development phase more documentation will be added in the future.
 
