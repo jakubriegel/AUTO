@@ -65,6 +65,10 @@
         "xstddef": "cpp",
         "xtr1common": "cpp",
         "xtree": "cpp",
-        "random": "cpp"
-    }
+        "random": "cpp",
+        "resumable": "cpp",
+        "xthread": "cpp"
+    },
+
+    "editor.fontSize": 15
 }

@@ -66,18 +66,34 @@ public:
 	static void calcBatteryUsage(unsigned int _range, unsigned int _minute); 
 	static void init();
 	
-	Car(AUTO * _app);
+	Car(AUTO * _app, const Position & _position);
 
 	// assign new job
 	void addJob(Route * route);
+	// assign new job with predefined status | ex. used while sending car to the base
+	void addJob(Route * route, const STATUS & status, const STATUS & statusPre);
 	// update car data
 	void update(const std::time_t & currentTime);
+	// add battery power | % times 10000
+	void charge(const unsigned int & toCharge);
+	// check in port
+	void checkInPort();
 	
 	void printPosition() const;
 
 	// getters to private members
-	const unsigned int & getId() const { return id; };
-	const Position & getPos() const { return position; };
-	const STATUS & getStatus() const { return status; };
+	const unsigned int & getId() const { return this->id; };
+	const Position & getPos() const { return this->position; };
+	const STATUS & getStatus() const { return this->status; };
+	const unsigned int & getBattery() const { return this->battery; }
+	const unsigned int & getMilleage() const { return this->mileage; }
+	Job * const getJob() const { return this->job; }
 
+	// get current job details
+	const nlohmann::json getJobJson() const;
+
+
+	
+	// convert to nlohmann::json
+	friend void to_json(nlohmann::json & j, const Car & c);
 };

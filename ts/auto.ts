@@ -1,9 +1,16 @@
 // main class
 class AUTO{
-    private static: Static;
+    public static: Static;
 
     private _cars: Data.Car[];
     get cars(): Data.Car[] { return this._cars; }
+
+    private _bases: Data.Base[];
+    get bases(): Data.Base[] { return this._bases; }
+
+    private _port: Data.Port;
+    get port(): Data.Port { return this._port; }
+    set port(port: Data.Port) { this._port = port; }
 
     private map: google.maps.Map; 
     private markers: google.maps.Marker[];
@@ -18,22 +25,40 @@ class AUTO{
     get stats(): Module.Stats { return this._stats; }
 
     constructor(){
+        // initialize static data
         this.static = new Static();
-        Data.Car.setStatic(this.static);
+        Data.Item.setStatic(this.static);
 
+        // create loading screen
+        let loading = <HTMLDialogElement> document.createElement('dialog');
+        loading.id = "loading-screen";
+        loading.appendChild(this.static.loading);
+        let body = <HTMLBodyElement> document.getElementsByTagName('body')[0];
+        body.appendChild(loading);
+        loading.showModal();
+
+
+        // initialize members
         this._cars = [];
+        this._bases = [];
+        this._port = null;
         this.panel = <HTMLDivElement> document.getElementById('panel');
  
         // get config data and initialize the map
         this.config();
 
         // initialize modules
-        this.requestForm = new Module.RequestForm(this.panel);
+        this.requestForm = new Module.RequestForm(this.panel, this);
         this._overview = new Module.Overview(this.panel);
         this._stats = new Module.Stats(this.panel);
 
         // get data and schedule updates 
         this.update();
+
+        // remove loading screen
+        loading.close()
+        body.removeChild(loading);
+        loading.removeChild(this.static.loading);
     }
 
     private config(): void {
@@ -64,10 +89,10 @@ class AUTO{
         this.areaPoly = new google.maps.Polygon({
             paths: this.area,
             strokeColor: '#000000',
-            strokeOpacity: 0.8,
+            strokeOpacity: 0.9,
             strokeWeight: 1,
-            fillColor: 'white',
-            fillOpacity: 0.0,
+            fillColor: '#757575',
+            fillOpacity: 0.1,
             clickable: false
         });
         this.areaPoly.setMap(this.map);
@@ -81,28 +106,47 @@ class AUTO{
         request.onreadystatechange = function() {
             // tasks to be done after response is received
             if (this.readyState == 4 && this.status == 200){
-                let data = <Data.ICarData> JSON.parse(request.responseText);
+                let data = <Data.IUpdateData> JSON.parse(request.responseText);
         
                 // update cars
                 for(let d of data.cars){
                     (() => {
+                        let dest; 
+                        if(d.job.duringJob) dest = d.job.end;
+                        else dest = "-";
                         for(let car of app.cars) if(d.id == car.getId()){
-                            car.update(new Data.Position(d.pos.lat, d.pos.lng), d.status);
+                            car.update(new Data.Position(d.pos.lat, d.pos.lng), d.status, d.battery, d.mileage, dest, d.warnings);
                             return;
                         }
-                        app.cars.push(new Data.Car(d.id, d.status, new Data.Position(d.pos.lat, d.pos.lng), app.map, app.static));
+                        app.cars.push(new Data.Car(d.id, d.status, new Data.Position(d.pos.lat, d.pos.lng), d.battery, d.mileage, dest, d.warnings, app.map));
                     })();
                 }
 
+                // update bases
+                for(let d of data.bases){
+                    (() => {
+                        for(let base of app.bases) if(d.id == base.getId()){
+                            base.update(d.free, d.cars.docked, d.cars.reserved);
+                            return;
+                        }
+                        app.bases.push(new Data.Base(d.id, new Data.Position(d.pos.lat, d.pos.lng), app.map, d.name, d.slots, d.free, d.cars.docked, d.cars.reserved));
+                    })();
+                }
+
+                // update port
+                let port: any = data.port;
+                if(app.port == null) app.port = new Data.Port(port.id, new Data.Position(port.pos.lat, port.pos.lng), app.map, port.name, port.slots, port.free, port.cars.docked, port.cars.reserved);
+                else app.port.update(port.free, port.cars.docked, port.cars.reserved);
+
                 // update modules
-                app.overview.update(data.stats);
+                app.overview.update(data.stats.active, data.stats.free, data.stats.busy, data.stats.preTime);
                 app.stats.update(app.cars);
                 
                 // schedule next update
                 setTimeout((_app = app)=>{ _app.update(_app); }, 15000);
             }
         }
-        request.open("GET", "/auto/cars", true); 
+        request.open("GET", "/auto/update", true); 
         request.send(null);
     }
 }
@@ -114,16 +158,25 @@ class Static {
     public readonly autoFree: google.maps.Icon;
     public readonly autoTaken: google.maps.Icon;
     public readonly autoBusy: google.maps.Icon;
+    public readonly base: google.maps.Icon;
+    public readonly port: google.maps.Icon;
+
+    public readonly loading: HTMLImageElement;
 
     constructor() {
         this.poznan = new Data.Position(52.403113, 16.925905);
 
-        this.autoFree = {url: 'auto/static/auto_free.png'};
-        this.autoTaken = {url: 'auto/static/auto_taken.png'};
-        this.autoBusy = {url: 'auto/static/auto_busy.png'};
+        this.autoFree = {url: 'auto/static/auto_free.png', labelOrigin: new google.maps.Point(0, -15) };
+        this.autoTaken = {url: 'auto/static/auto_taken.png', labelOrigin: new google.maps.Point(0, -15) };
+        this.autoBusy = {url: 'auto/static/auto_busy.png', labelOrigin: new google.maps.Point(0, -15) };
+        this.base = {url: 'auto/static/base.png', labelOrigin: new google.maps.Point(0, -15) };
+        this.port = {url: 'auto/static/port.png', labelOrigin: new google.maps.Point(0, -15) };
+
+        this.loading = document.createElement('img');
+        this.loading.src = "/auto/static/loading.gif";
+        this.loading.id = 'loading-bar';
     }
 }
 
-window.onload = () => {
-    let auto = new AUTO();
-};
+// start the app
+window.onload = () => new AUTO();

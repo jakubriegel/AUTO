@@ -20,9 +20,9 @@ void Car::calcBatteryUsage(unsigned int _range, unsigned int _minute){
     Car::minuteDistace = _minute;
 
     // print results
-    std::cout << "Car::range = " << Car::range 
-        << "\nCar::lowBattery = " << Car::lowBattery
-        << "\nCar::criticalBattery = " << Car::criticalBattery << "\n";
+    Util::log("Car battery initialized:\trange: " + std::to_string(Car::range) 
+        + "\tlowBattery: " + std::to_string(Car::lowBattery)
+        + "\tcriticalBattery: " + std::to_string(Car::criticalBattery));
 }
 
 void Car::init(){
@@ -30,11 +30,11 @@ void Car::init(){
 }
 
 // constructor of Car
-Car::Car(AUTO * _app)
-    : app(_app), id(++inUse), position(Const::BASE),
+Car::Car(AUTO * _app, const Position & _position)
+    : app(_app), id(++inUse), position(_position),
     job(nullptr), preJob(nullptr), battery(1000000), 
     mileage(0), timeOfNextBatteryUpdate(std::time(0) + Const::MINUTE) {
-        this->setStatus(Const::FREE);
+        this->setStatus(Const::IN_BASE);
 };
 
 
@@ -47,8 +47,10 @@ void Car::setStatus(const STATUS & newStatus) {
 
 void Car::addWarning(const STATUS & warning) {
     // check if warnig is not already on the list and then add it
-    if(this->warnigs.empty()) this->warnigs.push_back(warning);
-    else if(std::find(this->warnigs.begin(), this->warnigs.end(), warning) == this->warnigs.end()) this->warnigs.push_back(warning);
+    if(std::find(this->warnigs.begin(), this->warnigs.end(), warning) == this->warnigs.end()){
+        this->warnigs.push_back(warning);
+        Util::log("car " + std::to_string(this->id) + ":\tnew warning: " + std::to_string(warning));
+    }
 }
 
 const STATUS Car::updateBattery() {
@@ -58,7 +60,7 @@ const STATUS Car::updateBattery() {
 
 const STATUS Car::updateBattery(const std::time_t & currentTime) {
     // check if it is time for update
-    if(currentTime >= this->timeOfNextBatteryUpdate) {
+    while(currentTime >= this->timeOfNextBatteryUpdate) {
         // subtrack used battery
         this->battery -= Car::perMeter * Car::minuteDistace;
         // schedule next update
@@ -86,14 +88,22 @@ const STATUS Car::updateBattery(const unsigned int & driven, const std::time_t &
 }
 
 void Car::addJob(Route * route){
+    this->addJob(route, Const::JOB, Const::PREJOB);
+}
+
+void Car::addJob(Route * route, const STATUS & status, const STATUS & statusPre) {
     // assign job
     this->job = new Job(route);
-    // if car is in start point set status to JOB
-    if(this->position == this->job->origin) this->setStatus(Const::JOB);
-    // if not create prejob and set appropiate status
+    // add it to stats
+    if(status == Const::JOB) app->addRideToStats();
+    // if the car is in the start point or base is the start point set its status to 'status'
+    if(this->position == this->job->origin || status == statusPre) this->setStatus(status);
+    // if not create prejob and set 'statusPre'
     else{
-        this->setStatus(Const::PREJOB);
+        this->setStatus(statusPre);
         this->job->pre = new Job(url::getRoute(this->position, this->job->origin));
+        // add preJob time to stats
+        if(status == Const::JOB) app->addPreTimeToStats(this->job->pre->route->getDuration());
     }
     // start the job
     this->job->start();
@@ -101,7 +111,7 @@ void Car::addJob(Route * route){
 
 const STATUS Car::updateJob(Job * jobToUpdate, const std::time_t & currentTime) {
     // check if current step has ended
-    if(currentTime >= jobToUpdate->timeOfNextStep){
+    while(currentTime >= jobToUpdate->timeOfNextStep){
         // update battery
         this->updateBattery(jobToUpdate->route->getStep(jobToUpdate->step).distance, currentTime);
         // update mileage
@@ -110,6 +120,7 @@ const STATUS Car::updateJob(Job * jobToUpdate, const std::time_t & currentTime) 
         if(++jobToUpdate->step == jobToUpdate->route->getStepsNumber()){
             // set car position to the end of route
             this->position = jobToUpdate->route->getStep(jobToUpdate->step-1).end;
+            this->printPosition();
             return Const::END;
         }
         // if more steps need to be done
@@ -118,11 +129,10 @@ const STATUS Car::updateJob(Job * jobToUpdate, const std::time_t & currentTime) 
             this->position = jobToUpdate->route->getStep(jobToUpdate->step).start;
             // schedule next update
             jobToUpdate->timeOfNextStep += jobToUpdate->route->getStep(jobToUpdate->step).duration;
-            return Const::OK;
+            this->printPosition();
         }
-
-        this->printPosition();
     }
+    return Const::OK;
 }
 
 void Car::update(const std::time_t & currentTime){
@@ -159,14 +169,73 @@ void Car::update(const std::time_t & currentTime){
                     break;
             }
             break;
+        case Const::TO_BASE:
+            // update job and check weather it has ended
+            switch(this->updateJob(this->job, currentTime)) {
+                case Const::OK:
+                    // nothing happens
+                    break;
+                case Const::END:
+                    // delete job and change status to Const::IN_BASE
+                    delete this->job;
+                    this->job = nullptr;
+                    this->setStatus(Const::IN_BASE);
+                    break;
+            }
+            break;
     }
 
-    // check for warnings [to be implemented]
-    if(!this->warnigs.empty()) {
-        std::cout << "warn ";
+    // process wargings
+    for(const STATUS & warning : this->warnigs) switch(warning) {
+        case Const::LOW_BATTERY:
+        case Const::CRITICAL_BATTERY: 
+            if(this->status == Const::FREE) app->sendToClosestBase(this);
+            Util::log("car " + std::to_string(this->id) + ":\tgoing to base after " + std::to_string(warning) + " warning");
+            break;
     }
 }
 
-void Car::printPosition() const{
-    std::cout << "car " << this->id << " " << this->status << " position:\t" << this->position.getLat() << "\t" << this->position.getLng() << " bat: " << this->battery << "\n";
+void Car::charge(const unsigned int & toCharge) {
+    this->battery += toCharge;
+    if(this->battery > 1000000) this->battery = 1000000;
 }
+
+void Car::checkInPort() { this->setStatus(Const::IN_PORT); }
+
+void Car::printPosition() const {
+    Util::log("car " + std::to_string(this->id) + "\tstatus: " + std::to_string(this->status)
+        + "\tpos: " + std::to_string(this->position.getLat()) + " " + std::to_string(this->position.getLng())
+        + "\tbat: " + std::to_string(this->battery));
+}
+
+const nlohmann::json Car::getJobJson() const {
+    auto json = nlohmann::json();
+    json["id"] = this->id;
+    json["origin"] = this->job->route->getStartName();
+    json["destination"] = this->job->route->getEndName();
+    json["duration"] = this->job->route->getDuration();
+    json["preDuration"] = (this->job->pre != nullptr) ? this->job->pre->route->getDuration() : 0;
+    return json;
+}
+
+ void to_json(nlohmann::json & j, const Car & c) {
+    j["id"] = c.getId();
+    j["status"] = c.getStatus();
+    j["pos"]["lat"] = c.getPos().getLat();
+    j["pos"]["lng"] = c.getPos().getLng();
+    j["battery"] = c.getBattery();
+    j["mileage"] = c.getMilleage();
+    if(c.getJob() != nullptr){
+        j["job"]["duringJob"] = true; 
+        if(c.getJob()->pre != nullptr) {
+            j["job"]["start"] = c.getJob()->pre->route->getStartName();
+            j["job"]["end"] = c.getJob()->pre->route->getEndName();
+        }
+        else {
+            j["job"]["start"] = c.getJob()->route->getStartName();
+            j["job"]["end"] = c.getJob()->route->getEndName();
+        }
+    }
+    else j["job"]["duringJob"] = false;
+    j["warnings"] = nlohmann::json(c.warnigs);
+ }

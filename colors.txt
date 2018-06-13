@@ -1,4 +1,0 @@
-main | free | ok: #7CB342
-taken: # 
-busy: #FB8C00
-error: #E53935

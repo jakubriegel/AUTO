@@ -4,6 +4,15 @@
     font-family: 'Roboto', sans-serif;
 }
 
+:root {
+    /* common values */
+    --green: #7CB342;
+    --blue: #00ACC1;
+    --gray: #757575;
+    --orange: #FB8C00;
+    --red: #E53935;
+}
+
 html, body {
     margin: 0;
     overflow: hidden;
@@ -16,12 +25,40 @@ html, body {
     float: left;
 }
 
+#loading-screen {
+    width: 100vw;
+    height: 100vh;
+    border: none;
+    padding: 0;
+}
+
+#loading-bar {
+    width: 150px;
+}
+
+#loading-screen #loading-bar {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
 #map {
     width: 60vw;
 }
 
 #panel {
     width: 40vw;
+}
+
+footer {
+    width: 40vw;
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    font-size: 12px;
+    line-height: 18px;
+    text-align: center;
 }
 
 #panel header {
@@ -37,7 +74,7 @@ html, body {
 .module {
     height: 36vh;
     width: 16vw;
-    margin: 1vh 1vw;
+    margin: 0 1vw .5vh 1vw;
     padding: 1vh 1vw; 
 
     float: left;
@@ -70,6 +107,12 @@ html, body {
     font-weight: 300;
 }
 
+.module #order-form {
+    position: relative;
+    top: calc(50% - 6vh);
+    transform: translateY(-50%);
+}
+
 .module #order-form input[type="text"]{
     width: 13.5vw;
     height: 20px;
@@ -78,7 +121,12 @@ html, body {
 
     background: none;
     border: none;
-    border-bottom: 1px solid white;
+    border-bottom: 2px solid var(--blue);
+}
+
+.module #order-form input[type="text"]:disabled, .module #order-form input[type="button"]:disabled{
+    border-color: var(--gray);
+    cursor: not-allowed;
 }
 
 .module #order-form .status-icon{
@@ -106,36 +154,141 @@ html, body {
     border: solid 3px #00ACC1;
     border-radius: 6px;
     color: black;
+    cursor: pointer;
+}
+
+.module #order-form input[type="button"]{
+    width: 16vw;
+
+    background: none;
+    border: solid 3px #00ACC1;
+    border-radius: 6px;
+    color: black;
+    cursor: pointer;
+}
+
+.module dialog {
+    border: 8px solid var(--blue);
+    border-radius: 10px;
+    padding: 20px;
+
+    font-size: 15px;
+}
+
+.module dialog .order-info {
+    font-weight: lighter;
+}
+
+.module dialog .order-info h3{
+    text-align: center;
+}
+
+.module dialog .order-info img{
+    display: block;
+    margin: 0 auto;
+    width: 150px;
+}
+
+.module dialog .order-info .car{
+    width: 48%;
+    text-align: right;
+    margin: 0 2% 0 0;
+    display: inline-block;
+}
+
+.module dialog .order-info .pre{
+    width: 48%;
+    text-align: left;
+    margin: 0 0 0 2%;
+    display: inline-block;
+}
+
+.module dialog::backdrop {
+    background-color: rgba(117, 117, 117, 0.75); /* --gray */
+}
+
+.module dialog button{
+    display: block;
+    margin: 5px auto;
+    bottom: 0;
+    position: relative;
+}
+
+#overview div.number {
+    height: 5vh;
+    width: 4.5vw;
+    margin: .5vh 0 .5vh .5vw;
+    display: inline-block;
+    line-height: 6vh;
+    font-size: 2.5vh;
+    text-align: center;
+    font-weight: bolder;
+}
+
+#overview p {
+    display: inline-block;
+    height: 5vh;
+    width: 11vw;
+    margin: .5vh 0;
+    line-height: 6vh;
+    font-weight: lighter;
+    font-size: 2vh;
 }
 
 .module #car-list-container{
     height: 40vh;
 }
 
-.module #car-list-container div{
-    border: 1px solid white;
+#stats {
+    width: 36vw;
+}
+
+#stats .element{
+    border: 1px solid var(--gray);
     float: left;
+    height: 3vh;
+    box-sizing: border-box;
+
+    line-height: 3vh;
+    text-align: center;
+    font-size: 1.5vh;
+    overflow: hidden;
 }
 
-.module #car-list-container .id{
-    width: 30%;
-}
-
-.module #car-list-container .status{
-    width: 50%;
-}
-
-.module #car-list-container .header{
+#stats .list-header{
     margin: 0;
     border: none;
-    border-bottom: 3px solid white;
-    height: 3vh;
-
+    border-bottom: 1px solid var(--gray);
+    
     line-height: 3vh;
     font-size: 1.8vh;
 }
 
-.module #car-list-container ul{
+#stats .id{
+    width: 10%;
+}
+
+#stats .status{
+    width: 15%;
+}
+
+#stats .battery{
+    width: 10%;
+}
+
+#stats .destination{
+    width: 35%;
+}
+
+#stats .mileage{
+    width: 10%;
+}
+
+#stats .warnings{
+    width: 20%;
+}
+
+#stats ul{
     width: 100%;
     height: 24vh;
     margin: 0;
@@ -147,6 +300,10 @@ html, body {
     list-style: none;
 }
 
-.module #car-list-container ul::-webkit-scrollbar { 
+#stats ul::-webkit-scrollbar { 
     display: none; 
+}
+
+#stats li{
+    height: 3vh;
 }

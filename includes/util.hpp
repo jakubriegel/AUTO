@@ -11,14 +11,18 @@ class Position {
 		Position() = default;
 			Position(double _lat, double _lng) : lat(_lat), lng(_lng) {};
 
+		// getters for private members
 		const double & getLat() const { return lat; };
 		const double & getLng() const { return lng; };
 
+		// compare equality operator
 		bool operator==(const Position & p2) const { return lat == p2.getLat() && lng == p2.getLng(); };
+		bool operator!=(const Position & p2) const { return lat != p2.getLat() || lng != p2.getLng(); };
 
         // required by nlohmann::json while parsing object to JSON
 		friend void to_json(nlohmann::json & j, const Position & p);
 
+		// get distance in meteres between two positions
         static const double getDistance(const Position & A, const Position & B);
 };
 
@@ -84,17 +88,24 @@ class Route {
 		std::vector<Step> steps;
 		unsigned int stepsN;
 
-		nlohmann::json data;
+		const nlohmann::json data;
 
 	public:
 		Route(nlohmann::json _data);
 
 		void print(bool extended = false) const;
 
-		const Position & getStart() const { return start; };
-		const Position & getEnd() const { return end; };
-		const Step & getStep(unsigned int i) const { return steps[i]; };
-		const unsigned int & getStepsNumber() const { return stepsN; };
+		// set custom destination name
+		void setEndName(const std::string & name) { this->endName = name; };
+
+		// getters to provate members
+		const Position & getStart() const { return this->start; };
+		const Position & getEnd() const { return this->end; };
+		const std::string & getStartName() const { return this->startName; }
+		const std::string & getEndName() const { return this->endName; }
+		const Step & getStep(const unsigned int & i) const { return this->steps[i]; };
+		const unsigned int & getStepsNumber() const { return this->stepsN; };
+		const unsigned int & getDuration() const { return this->duration; }
 
 };
 
@@ -119,7 +130,13 @@ struct Job{
 
 // functions used in vaurious cases
 namespace Util {
-	double randDouble(double min, double max);
+	// convert degrees to radians
+	inline const double toRad(const double & deg) { return deg * M_PI / 180; }
 
+	// random numbers generators
+	double randDouble(double min, double max);
 	unsigned int randUnInt(unsigned int min, unsigned int max);
+
+	// standard logging
+	void log(const std::string & msg, const bool & error = false);
 }
