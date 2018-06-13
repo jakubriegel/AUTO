@@ -157,16 +157,6 @@ footer {
     cursor: pointer;
 }
 
-.module #order-form input[type="button"]{
-    width: 16vw;
-
-    background: none;
-    border: solid 3px #00ACC1;
-    border-radius: 6px;
-    color: black;
-    cursor: pointer;
-}
-
 .module dialog {
     border: 8px solid var(--blue);
     border-radius: 10px;
@@ -306,4 +296,67 @@ footer {
 
 #stats li{
     height: 3vh;
+}
+
+/* smartphone */
+@media only screen and (max-width: 766px) {
+html, body{
+    overflow: scroll;
+}
+
+    #map, #panel, #panel header, footer {
+        width: 100vw;
+    }
+
+    #map {
+        height: 80vh;
+    }
+
+    .module {
+        width: 46vw;
+    }
+
+    .module .header {
+        width: 36vw;
+    }
+    
+    .module .header .icon {
+        width: 10vw;
+    }
+
+    .module .header h3 {
+        width: 26vw;
+    }
+
+    .module #order-form input[type="text"]{
+        width: 38.5vw;
+    }
+    
+    .module #order-form .status-icon{
+        width: 7vw;
+    }
+    
+    .module #order-form input[type="button"]{
+        width: 46vw;
+    }
+
+    #overview.module div.number{
+        float: left;
+        clear: both;
+        width: 14.5vw;
+    } 
+    
+    #overview.module p {
+        float: left;
+        width: 28.5vw;
+    }
+
+    #panel #stats.module {
+        width: 96vw;
+    }
+
+    footer {
+        position: initial;
+        font-size: 10px;
+    }
 }

@@ -59,6 +59,13 @@ class AUTO{
         loading.close()
         body.removeChild(loading);
         loading.removeChild(this.static.loading);
+        
+        // if page is displayed on small screen swap #map and #panel, so that #panel displays first
+        window.onresize = () => { if(window.innerWidth < 766){
+            let map = document.getElementById('map');
+            body.removeChild(map);
+            body.appendChild(map);}
+        }
     }
 
     private config(): void {

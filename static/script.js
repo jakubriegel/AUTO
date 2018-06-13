@@ -30,6 +30,13 @@ var AUTO = (function () {
         loading.close();
         body.removeChild(loading);
         loading.removeChild(this.static.loading);
+        window.onresize = function () {
+            if (window.innerWidth < 766) {
+                var map = document.getElementById('map');
+                body.removeChild(map);
+                body.appendChild(map);
+            }
+        };
     }
     Object.defineProperty(AUTO.prototype, "cars", {
         get: function () { return this._cars; },
