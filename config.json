@@ -242,13 +242,13 @@
     },
 
     "ordersGenerator": {
-        "delay": 5,
-        "intervalMin": 80,
-        "intervalMax": 140,
+        "delay": 1200,
+        "intervalMin": 90,
+        "intervalMax": 180,
         "mainProb": 0.8
     },
 
     "maps": {
-        "apiKey": "AIzaSyBfTruPldaz027vUHZKmRvRaAD-VCrdmIk"
+        "apiKey": "YOUR_API_KEY"
     }
 }

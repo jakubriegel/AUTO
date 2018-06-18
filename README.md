@@ -27,12 +27,14 @@ External modules of the system are:
 ### Diagram of how AUTO works:
 ![AUTO all_modules](https://raw.githubusercontent.com/jakubriegel/AUTO/master/docs/all_modules.png)
 
-Majority of code is explained by in-line comments. 
+Majority of code is explained by in-line comments. Main algorithms used in the project are explained [here](https://raw.githubusercontent.com/jakubriegel/AUTO/master/docs/AUTO_Jakub_Riegel_formatka.pdf)[in Polish].
 
 ## Try it!
 You can get hands on it here: [auto.jrie.eu](http://auto.jrie.eu/). 
 
 AUTO web application is just a sample of how could user-side of such system look. It is working on desktop and mobile, but proper functionality is only available in Google Chrome.
+
+Note that some system down time is possible.
 
 ## Build and run it yourself
 
@@ -40,16 +42,21 @@ Necessary dependencies are g++, cURL and cURLpp. The app also uses Crow and nloh
 
 AUTO was implemented using Visual Studio Code. This repository contains configuration files for it.
 
+For making it possible to run AUTO you also need individual Google API key, with Diresction API, Places API and Maps JavaScript API enabled. When you grab it, just paste it into `config.json` file at `maps/apiKey`. Note that to make request to Google from your server you have to register your domain on Google Cloud. More information about the API can be found [here](https://cloud.google.com/maps-platform/).
+
 
 ### Compiling 
 First you need to compile TypeScript. Type `tsc` in the Terminal. Afer it you are ready to start C++ compilation with: `g++ app.cpp includes/implementation/*.cpp -o AUTO -std=c++11 -lboost_system -lpthread -lcurlpp -lcurl `
 
 ### Running
-Type: `sudo ./AUTO config.json`
+Type: `sudo ./AUTO config.json`.
+
+To run AUTO continuously I use `screen`. Simply type `screen`, then `sudo ./AUTO config.json`. 
+To detach your console type `CTRL+A` followed by `D`. Return to it is possible with `screen -r`.
 
 
 ## Credits
-This is a project for my CS studies at [Poznan University of Technlogy](https://www4.put.poznan.pl/en).
+This is a project for my CS studies at [Poznan University of Technology](https://www4.put.poznan.pl/en).
 
 ---
 [<img src="https://yt3.ggpht.com/a-/AJLlDp0OnTj3ja34dx-_Z0-aAV9prQz2qJ1wxEKMEg=s900-mo-c-c0xffffffff-rj-k-no" width="100dp" />](https://www4.put.poznan.pl/en)
