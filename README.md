@@ -8,11 +8,11 @@ AUTO is a project of the system of full autonomous electric cabs running in [Poz
 
 
 ## Implementation
-System is implemented 100% in C++ with additional frameworks: [cURL](https://github.com/curl/curl), [cURLpp](https://github.com/jpbarrette/curlpp) and [Crow](https://github.com/ipkn/crow). Front-end is written is [TypeScript](https://github.com/Microsoft/TypeScript). Map service is provided by Google Maps API. 
+System is implemented 100% in C++ with additional frameworks: [Crow](https://github.com/ipkn/crow), [nlohmann::json](https://github.com/nlohmann/json), [cURL](https://github.com/curl/curl) and [cURLpp](https://github.com/jpbarrette/curlpp). Front-end is written is [TypeScript](https://github.com/Microsoft/TypeScript). Map service is provided by Google Maps API. 
 
 ![AUTO technologies](https://raw.githubusercontent.com/jakubriegel/AUTO/master/docs/technologies.png)
 
-Core of the app is based on modular structure. Main app is an object of class **AUTO**, from whitch other modules expand. They are: 
+Core of the app is based on modular structure. Main app is an object of class **AUTO**, from which other modules expand. They are: 
 * **server** - a Crow application serving AUTO web app and JSON API
 * **simulator of cars and bases** - here all of cars and bases logic happens
 * **requests genetator** - generates random orders for rides, so that it can be seen, how the system could work in real life
