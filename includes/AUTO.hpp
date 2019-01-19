@@ -55,6 +55,11 @@ private:
 
 public:
     AUTO(const std::string & configFile);
+    ~AUTO() {
+        // clear memory
+        for(auto * car : this->activeCars) delete car;
+        delete port;
+    }
 
     // update car vectors after change of one cars' status
     void updateCarStatus(Car * car, const STATUS & old);
